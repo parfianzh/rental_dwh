@@ -1,0 +1,71 @@
+Enum listing_source {
+  etagi
+  kvartirant
+  yandex_realty
+}
+
+Table dim_property {
+  property_key bigint [pk, increment]
+
+  city varchar(100) [not null]
+  district varchar(150)
+  street varchar(200)
+  house varchar(50)
+
+  rooms smallint
+  floor smallint
+}
+
+Table dim_listing {
+  listing_key bigint [pk, increment]
+
+  source listing_source [not null]
+  source_listing_id varchar(100) [not null]
+  source_url text [not null]
+
+  area_sqm numeric(7,2) [not null]
+  floors_total smallint
+  published_date date
+
+  indexes {
+    (source, source_listing_id) [unique]
+  }
+}
+
+Table etl_run {
+  run_key bigint [pk, increment]
+
+  airflow_run_id varchar(250) [not null, unique]
+  started_at timestamptz [not null]
+  finished_at timestamptz
+
+  extracted_count integer [not null]
+  loaded_count integer [not null]
+}
+
+Table fact_listing_snapshot {
+  snapshot_key bigint [pk, increment]
+
+  listing_key bigint [not null]
+  property_key bigint [not null]
+  run_key bigint [not null]
+
+  collected_at timestamptz [not null]
+  monthly_rent integer [not null]
+
+  deposit_required boolean
+  deposit_amount integer
+
+  commission_required boolean
+  commission_amount integer
+
+  indexes {
+    (run_key, listing_key) [unique]
+  }
+}
+
+Ref: dim_listing.listing_key < fact_listing_snapshot.listing_key
+
+Ref: dim_property.property_key < fact_listing_snapshot.property_key
+
+Ref: etl_run.run_key < fact_listing_snapshot.run_key

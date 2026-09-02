@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+.pytest_cache/
+*.py[cod]
+*.egg-info/
+
+# Virtual environments
+.venv/
+venv/
+
+# Local environment and secrets
+redash/redash.env
+.env
+
+# IDE / OS
+.vscode/
+.DS_Store
+.idea/
+
+# Logs
+logs/
+
+# Local data
+data/
+
+# Generated Airflow configuration
+config/airflow.cfg
+

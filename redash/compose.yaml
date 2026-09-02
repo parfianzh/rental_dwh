@@ -1,0 +1,94 @@
+x-redash-service: &redash-service
+  image: redash/redash:26.3.0
+  env_file:
+    - redash.env
+  restart: unless-stopped
+  depends_on:
+    redash-postgres:
+      condition: service_healthy
+    redash-redis:
+      condition: service_healthy
+  networks:
+    - default
+    - rental-dwh
+
+services:
+  redash-server:
+    <<: *redash-service
+    command: server
+    ports:
+      - "5001:5000"
+    environment:
+      REDASH_WEB_WORKERS: "4"
+
+  redash-scheduler:
+    <<: *redash-service
+    command: scheduler
+    depends_on:
+      redash-server:
+        condition: service_started
+
+  redash-scheduled-worker:
+    <<: *redash-service
+    command: worker
+    depends_on:
+      redash-server:
+        condition: service_started
+    environment:
+      QUEUES: "scheduled_queries,schemas"
+      WORKERS_COUNT: "1"
+
+  redash-adhoc-worker:
+    <<: *redash-service
+    command: worker
+    depends_on:
+      redash-server:
+        condition: service_started
+    environment:
+      QUEUES: "queries"
+      WORKERS_COUNT: "2"
+
+  redash-worker:
+    <<: *redash-service
+    command: worker
+    depends_on:
+      redash-server:
+        condition: service_started
+    environment:
+      QUEUES: "periodic,emails,default"
+      WORKERS_COUNT: "1"
+
+  redash-redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD
+        - redis-cli
+        - ping
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redash-postgres:
+    image: pgautoupgrade/pgautoupgrade:17-alpine
+    env_file:
+      - redash.env
+    volumes:
+      - redash-postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U postgres
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  redash-postgres-data:
+
+networks:
+  rental-dwh:
+    external: true
+    name: rental_dwh_default
