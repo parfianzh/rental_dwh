@@ -80,8 +80,24 @@ def transform_record(record):
     }
 
 
+REQUIRED_FIELDS = (
+    "title",
+    "address",
+    "price",
+    "url",
+)
+
+
+def is_valid_record(record):
+    return all(
+        record.get(field) not in (None, "")
+        for field in REQUIRED_FIELDS
+    )
+
+
 def transform_records(records):
     return [
         transform_record(record)
         for record in records
+        if is_valid_record(record)
     ]
