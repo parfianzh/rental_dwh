@@ -26,9 +26,8 @@ def parse_card(card):
         class_="OffersSerpItem__price"
     )
 
-    address_element = card.find(
-        "div",
-        class_="AddressWithGeoLinks__addressContainer--4jzfZ"
+    address_element = card.select_one(
+        '[class*="AddressWithGeoLinks__addressContainer"]'
     )
 
     publication_date_element = card.find(
@@ -45,7 +44,7 @@ def parse_card(card):
     )
 
     badges = card.find_all(
-        attrs={"data-test": "Badge"}
+        attrs={"data-test": "OffersSerpItemBadge"}
     )
 
     commission = None
