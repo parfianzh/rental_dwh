@@ -130,21 +130,42 @@ def parse_deposit(deposit):
 
 
 def parse_address(address):
+    if not address:
+        return None
+
     parts = [
         part.strip()
         for part in address.split(",")
     ]
 
-    if len(parts) == 3:
-        city = parts.pop(0)
-    else:
-        city = "Владивосток"
+    if len(parts) == 2:
+        street, house = parts
 
-    street, house = parts
+        if street.casefold() == "владивосток":
+            return None
+
+        city = "Владивосток"
+        district = None
+
+    elif len(parts) == 3:
+        first_part, street, house = parts
+
+        if first_part.casefold() == "владивосток":
+            city = first_part
+            district = None
+        else:
+            city = "Владивосток"
+            district = first_part
+
+    else:
+        return None
+
+    if not street or not house:
+        return None
 
     return {
         "city": city,
-        "district": None,
+        "district": district,
         "street": street,
         "house": house,
     }
@@ -197,15 +218,21 @@ def parse_publication_date(publication_date, collected_at):
 
 def transform_record(record):
     source_url = record.get("url")
-    title = parse_title(record.get("title"))
     address = parse_address(record.get("address"))
+
+    if address is None:
+        return None
+
+    title = parse_title(record.get("title"))
     monthly_rent = extract_monthly_rent(
         record.get("price")
     )
+
     commission = parse_commission(
         record.get("commission"),
         monthly_rent,
     )
+    
     deposit = parse_deposit(record.get("deposit"))
 
     return {
@@ -244,7 +271,14 @@ def transform_record(record):
 
 
 def transform_records(records):
-    return [
-        transform_record(record)
-        for record in records
-    ]
+    transformed_records = []
+
+    for record in records:
+        transformed_record = transform_record(record)
+
+        if transformed_record is not None:
+            transformed_records.append(
+                transformed_record
+            )
+
+    return transformed_records
