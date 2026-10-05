@@ -26,3 +26,5 @@ data/
 # Generated Airflow configuration
 config/airflow.cfg
 
+# Git
+git.md
