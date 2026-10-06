@@ -36,7 +36,13 @@ def extract_area(title):
 
 def parse_address(address):
     city, remainder = address.split(", ", 1)
-    district, street, house = remainder.rsplit(", ", 2)
+    address_parts = remainder.rsplit(", ", 2)
+
+    if len(address_parts) == 3:
+        district, street, house = address_parts
+    else:
+        district = None
+        street, house = address_parts
 
     house = house.removeprefix("д.").strip()
 
