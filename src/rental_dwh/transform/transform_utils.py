@@ -21,6 +21,27 @@ def extract_listing_id(url):
 
 MIN_AREA_SQM = 5
 MIN_MONTHLY_RENT = 7000
+MAX_FLOOR = 44
+
+
+def normalize_floors(floor, floors_total):
+    floor = to_int(floor)
+    floors_total = to_int(floors_total)
+
+    if (
+        floor is not None
+        and floors_total is not None
+        and floor > floors_total
+    ):
+        floor, floors_total = floors_total, floor
+
+    if floor is not None and floor > MAX_FLOOR:
+        floor = None
+
+    if floors_total is not None and floors_total > MAX_FLOOR:
+        floors_total = None
+
+    return floor, floors_total
 
 
 def is_valid_listing(listing):
