@@ -7,6 +7,7 @@ from rental_dwh.transform.address_normalizer import (
 )
 from rental_dwh.transform.transform_utils import (
     extract_listing_id,
+    is_valid_listing,
     to_float,
     to_int,
 )
@@ -102,8 +103,15 @@ def is_valid_record(record):
 
 
 def transform_records(records):
-    return [
-        transform_record(record)
-        for record in records
-        if is_valid_record(record)
-    ]
+    transformed_records = []
+
+    for record in records:
+        if not is_valid_record(record):
+            continue
+
+        transformed_record = transform_record(record)
+
+        if is_valid_listing(transformed_record):
+            transformed_records.append(transformed_record)
+
+    return transformed_records
