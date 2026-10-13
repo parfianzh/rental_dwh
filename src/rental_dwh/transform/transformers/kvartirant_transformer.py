@@ -10,6 +10,7 @@ from rental_dwh.transform.transform_utils import (
     is_valid_listing,
     to_float,
     to_int,
+    normalize_floors,
 )
 
 ROOMS_PATTERN = re.compile(r"(\d+)-к")
@@ -58,6 +59,10 @@ def parse_address(address):
 def transform_record(record):
     source_url = record.get("url")
     address = parse_address(record.get("address"))
+    floor, floors_total = normalize_floors(
+        record.get("floor"),
+        record.get("floors"),
+    )
 
     return {
         "source": "kvartirant",
@@ -71,8 +76,8 @@ def transform_record(record):
 
         "rooms": extract_rooms(record.get("title")),
         "area_sqm": extract_area(record.get("title")),
-        "floor": to_int(record.get("floor")),
-        "floors_total": to_int(record.get("floors")),
+        "floor": floor,
+        "floors_total": floors_total,
 
         "monthly_rent": to_int(record.get("price")),
 

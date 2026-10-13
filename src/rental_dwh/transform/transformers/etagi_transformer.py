@@ -8,11 +8,16 @@ from rental_dwh.transform.transform_utils import (
     to_float,
     extract_listing_id,
     is_valid_listing,
+    normalize_floors,
 )
 
 def transform_record(record):
     deposit_amount = to_int(record.get("deposit"))
     source_url = record.get("url")
+    floor, floors_total = normalize_floors(
+        record.get("floor"),
+        record.get("floors"),
+    )
 
     return {
         "source": "etagi",
@@ -28,8 +33,8 @@ def transform_record(record):
 
         "rooms": to_int(record.get("rooms")),
         "area_sqm": to_float(record.get("square")),
-        "floor": to_int(record.get("floor")),
-        "floors_total": to_int(record.get("floors")),
+        "floor": floor,
+        "floors_total": floors_total,
 
         "monthly_rent": to_int(record.get("price")),
 

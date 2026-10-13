@@ -11,6 +11,7 @@ from rental_dwh.transform.transform_utils import (
     is_valid_listing,
     to_float,
     to_int,
+    normalize_floors,
 )
 
 
@@ -60,6 +61,11 @@ def parse_title(title):
     if floors_match:
         floor = to_int(floors_match.group(1))
         floors_total = to_int(floors_match.group(2))
+
+    floor, floors_total = normalize_floors(
+        floor,
+        floors_total,
+    )
 
     return {
         "rooms": rooms,
