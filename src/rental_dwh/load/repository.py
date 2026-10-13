@@ -70,17 +70,38 @@ def find_existing_property_key(cursor, listing_keys):
 
     cursor.execute(
         """
-        SELECT property_key
-        FROM fact_listing_snapshot
-        WHERE listing_key = ANY(%s)
-        GROUP BY property_key
+        SELECT candidate.property_key
+        FROM fact_listing_snapshot AS candidate
+        WHERE candidate.listing_key = ANY(%s)
+          AND NOT EXISTS (
+              SELECT 1
+              FROM fact_listing_snapshot AS existing_snapshot
+              JOIN dim_listing AS existing_listing
+                  ON existing_listing.listing_key
+                     = existing_snapshot.listing_key
+              WHERE existing_snapshot.property_key
+                    = candidate.property_key
+                AND EXISTS (
+                    SELECT 1
+                    FROM dim_listing AS incoming_listing
+                    WHERE incoming_listing.listing_key = ANY(%s)
+                      AND incoming_listing.source
+                          = existing_listing.source
+                      AND incoming_listing.listing_key
+                          <> existing_listing.listing_key
+                )
+          )
+        GROUP BY candidate.property_key
         ORDER BY
-            MAX(collected_at) DESC,
+            MAX(candidate.collected_at) DESC,
             COUNT(*) DESC,
-            property_key
+            candidate.property_key
         LIMIT 1
         """,
-        (listing_keys,),
+        (
+            listing_keys,
+            listing_keys,
+        ),
     )
 
     row = cursor.fetchone()

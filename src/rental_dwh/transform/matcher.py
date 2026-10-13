@@ -104,6 +104,22 @@ def find_matches(records):
     return matches
 
 
+def get_match_score(match):
+    normalized_area_difference = (
+        match["area_difference"]
+        / MAX_AREA_DIFFERENCE
+    )
+    normalized_price_difference = (
+        match["price_difference_percent"]
+        / MAX_PRICE_DIFFERENCE_PERCENT
+    )
+
+    return (
+        normalized_area_difference
+        + normalized_price_difference
+    )
+
+
 def build_match_groups(records, matches):
     listings = {
         (
@@ -118,9 +134,23 @@ def build_match_groups(records, matches):
         }
         for record in records
     }
-    connections = {}
 
-    for match in matches:
+    groups_by_listing = {}
+
+    sorted_matches = sorted(
+        matches,
+        key=lambda match: (
+            get_match_score(match),
+            match["area_difference"],
+            match["price_difference_percent"],
+            match["left_source"],
+            match["left_source_listing_id"],
+            match["right_source"],
+            match["right_source_listing_id"],
+        ),
+    )
+
+    for match in sorted_matches:
         left_key = (
             match["left_source"],
             match["left_source_listing_id"],
@@ -130,40 +160,72 @@ def build_match_groups(records, matches):
             match["right_source_listing_id"],
         )
 
-        connections.setdefault(left_key, set()).add(
-            right_key
-        )
-        connections.setdefault(right_key, set()).add(
-            left_key
-        )
+        left_group = groups_by_listing.get(left_key)
+        right_group = groups_by_listing.get(right_key)
 
-    groups = []
-    visited = set()
-
-    for listing_key in sorted(connections):
-        if listing_key in visited:
+        if left_group is None and right_group is None:
+            group = {left_key, right_key}
+            groups_by_listing[left_key] = group
+            groups_by_listing[right_key] = group
             continue
 
-        group_keys = []
-        pending = [listing_key]
+        if left_group is None:
+            group_sources = {
+                key[0]
+                for key in right_group
+            }
 
-        while pending:
-            current_key = pending.pop()
+            if left_key[0] not in group_sources:
+                right_group.add(left_key)
+                groups_by_listing[left_key] = right_group
 
-            if current_key in visited:
-                continue
+            continue
 
-            visited.add(current_key)
-            group_keys.append(current_key)
-            pending.extend(
-                connections[current_key] - visited
-            )
+        if right_group is None:
+            group_sources = {
+                key[0]
+                for key in left_group
+            }
 
-        groups.append(
-            [
-                listings[key]
-                for key in sorted(group_keys)
-            ]
+            if right_key[0] not in group_sources:
+                left_group.add(right_key)
+                groups_by_listing[right_key] = left_group
+
+            continue
+
+        if left_group is right_group:
+            continue
+
+        left_sources = {
+            key[0]
+            for key in left_group
+        }
+        right_sources = {
+            key[0]
+            for key in right_group
+        }
+
+        if left_sources & right_sources:
+            continue
+
+        merged_group = left_group | right_group
+
+        for listing_key in merged_group:
+            groups_by_listing[listing_key] = merged_group
+
+    unique_groups = {
+        frozenset(group)
+        for group in groups_by_listing.values()
+        if len(group) > 1
+    }
+
+    return [
+        [
+            listings[key]
+            for key in sorted(group)
+        ]
+        for group in sorted(
+            unique_groups,
+            key=lambda group: tuple(sorted(group)),
         )
-
-    return groups
+    ]
