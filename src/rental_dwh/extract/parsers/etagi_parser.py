@@ -8,6 +8,7 @@ from rental_dwh.extract.extract_config import HEADERS, TIMEOUT
 
 SITE_URL = "https://vl.etagi.com"
 SEARCH_PATH = "/realty_rent/"
+RENTAL_PERIOD = 2
 SORT = "datecreatedesc"
 
 
@@ -15,6 +16,7 @@ def get_page(page):
     response = requests.get(
         f"{SITE_URL}{SEARCH_PATH}",
         params={
+            "period[]": RENTAL_PERIOD,
             "orderId": SORT,
             "page": page,
         },

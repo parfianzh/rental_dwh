@@ -7,6 +7,7 @@ from rental_dwh.transform.transform_utils import (
     to_int,
     to_float,
     extract_listing_id,
+    is_valid_listing,
 )
 
 def transform_record(record):
@@ -48,7 +49,12 @@ def transform_record(record):
     
     
 def transform_records(records):
-    return [
-        transform_record(record)
-        for record in records
-    ]
+    transformed_records = []
+
+    for record in records:
+        transformed_record = transform_record(record)
+
+        if is_valid_listing(transformed_record):
+            transformed_records.append(transformed_record)
+
+    return transformed_records

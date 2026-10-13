@@ -74,6 +74,7 @@ with DAG(
     ),
     schedule="0 15 * * *",
     catchup=False,
+    max_active_runs=1,
     tags=["rental", "etl"],
 ) as dag:
     processed_paths = []
