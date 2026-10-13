@@ -1,6 +1,7 @@
 PYTHON := venv/bin/python
 RUNNER := rental_dwh.extract.extract_runner
 TRANSFORM_RUNNER := rental_dwh.transform.transform_runner
+REBUILD_RUNNER := rental_dwh.transform.rebuild_runner
 DATE ?= $(shell date +%F)
 LOAD_RUNNER := rental_dwh.load.load_runner
 
@@ -8,7 +9,9 @@ LOAD_RUNNER := rental_dwh.load.load_runner
 	extract_etagi extract_kvartirant extract_yandex_realty \
 	transform_etagi transform_kvartirant transform_yandex_realty \
 	match_listings \
-	load_dwh
+	load_dwh \
+	rebuild_processed \
+	load_history
 
 help:
 	@echo "make extract_etagi"
@@ -19,6 +22,8 @@ help:
 	@echo "make transform_yandex_realty"
 	@echo "make match_listings"
 	@echo "make load_dwh"
+	@echo "make rebuild_processed"
+	@echo "make load_history"
 
 extract_etagi:
 	PYTHONPATH=src $(PYTHON) -m $(RUNNER) etagi
@@ -43,3 +48,13 @@ match_listings:
 
 load_dwh:
 	PYTHONPATH=src $(PYTHON) -c "from datetime import datetime; from $(LOAD_RUNNER) import run; started_at = datetime.now().astimezone(); print(run(['data/processed/etagi/$(DATE).json', 'data/processed/kvartirant/$(DATE).json', 'data/processed/yandex_realty/$(DATE).json'], 'data/processed/matched/$(DATE).json', 'manual__' + started_at.isoformat(), started_at))"
+
+rebuild_processed:
+	PYTHONPATH=src $(PYTHON) -c "from $(REBUILD_RUNNER) import run; run()"
+
+load_history:
+	@set -e; \
+	for file in data/processed/matched/*.json; do \
+		snapshot_date=$$(basename "$$file" .json); \
+		$(MAKE) load_dwh DATE="$$snapshot_date"; \
+	done
