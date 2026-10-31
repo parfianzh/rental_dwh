@@ -1,0 +1,53 @@
+.widget-visualization .t-header .query-link > .visualization-name:not(:empty) + span {
+  display: none;
+}
+
+.widget-visualization .t-header .query-link > .visualization-name::after {
+  content: none;
+}
+
+.widget-visualization .counter-visualization-container
+.counter-visualization-content .counter-visualization-label {
+  display: none;
+}
+
+.widget-visualization .counter-visualization-content > div {
+  transform: none !important;
+}
+
+.widget-visualization .counter-visualization-container
+.counter-visualization-content .counter-visualization-value {
+  font-size: 40px;
+  line-height: 1.2;
+}
+
+.widget-visualization .display-as-null {
+  font-size: 0;
+}
+
+.widget-visualization .display-as-null::after {
+  content: "—";
+  font-size: 14px;
+  font-style: normal;
+}
+
+.widget-visualization a:is(
+  [href="null"],
+  [href="/null"],
+  [href="http://localhost:5001/null"]
+) {
+  font-size: 0;
+  pointer-events: none;
+  cursor: default;
+  text-decoration: none;
+  color: #808080;
+}
+
+.widget-visualization a:is(
+  [href="null"],
+  [href="/null"],
+  [href="http://localhost:5001/null"]
+)::after {
+  content: "—";
+  font-size: 14px;
+}

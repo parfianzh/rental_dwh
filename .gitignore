@@ -28,3 +28,6 @@ config/airflow.cfg
 
 # Git
 git.md
+
+# Power BI report files
+*.pbix
