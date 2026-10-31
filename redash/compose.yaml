@@ -15,6 +15,9 @@ x-redash-service: &redash-service
 services:
   redash-server:
     <<: *redash-service
+    image: rental-dwh/redash:26.3.0-custom
+    build:
+      context: .
     command: server
     ports:
       - "5001:5000"
