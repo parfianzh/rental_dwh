@@ -1,13 +1,18 @@
-import requests
-from bs4 import BeautifulSoup
+from contextlib import contextmanager
 
-from rental_dwh.extract.extract_config import HEADERS, TIMEOUT
+from bs4 import BeautifulSoup
+from playwright.sync_api import (
+    TimeoutError as PlaywrightTimeoutError,
+    sync_playwright,
+)
 
 
 SITE_URL = "https://realty.yandex.ru"
 SEARCH_PATH = "/vladivostok/snyat/kvartira/"
 SORT = "DATE_DESC"
-
+CARD_SELECTOR = 'li[data-test="OffersSerpItem"]'
+NAVIGATION_TIMEOUT_MS = 60000
+CARDS_TIMEOUT_MS = 15000
 
 def clean_text(text):
     if text is None:
@@ -94,19 +99,64 @@ def parse_card(card):
     }
 
 
-def get_page(page):
-    params = {
-        "sort": SORT,
-        "page": page,
-    }
+@contextmanager
+def browser_session():
+    with sync_playwright() as playwright:
+        browser = playwright.chromium.launch(headless=True)
 
-    response = requests.get(
-        f"{SITE_URL}{SEARCH_PATH}",
-        params=params,
-        headers=HEADERS,
-        timeout=TIMEOUT,
+        try:
+            context = browser.new_context()
+            page = context.new_page()
+            yield page
+        finally:
+            browser.close()
+
+
+def check_captcha(page):
+    title = page.title().lower()
+    url = page.url.lower()
+
+    if "не робот" in title or "showcaptcha" in url:
+        raise RuntimeError(
+            "Яндекс Недвижимость вернул CAPTCHA."
+        )
+
+
+def get_page(page_number, browser_page):
+    url = (
+        f"{SITE_URL}{SEARCH_PATH}"
+        f"?sort={SORT}&page={page_number}"
     )
-    return response.text, response.status_code
+
+    response = browser_page.goto(
+        url,
+        wait_until="domcontentloaded",
+        timeout=NAVIGATION_TIMEOUT_MS,
+    )
+
+    check_captcha(browser_page)
+
+    if response is None or response.status != 200:
+        status = response.status if response else None
+        raise RuntimeError(
+            f"Яндекс Недвижимость вернул HTTP {status}."
+        )
+
+    try:
+        browser_page.locator(CARD_SELECTOR).first.wait_for(
+            state="attached",
+            timeout=CARDS_TIMEOUT_MS,
+        )
+    except PlaywrightTimeoutError as error:
+        check_captcha(browser_page)
+        raise RuntimeError(
+            "Карточки Яндекс Недвижимости "
+            "не появились за время ожидания."
+        ) from error
+
+    check_captcha(browser_page)
+
+    return browser_page.content(), response.status
 
 
 def parse_page(html):

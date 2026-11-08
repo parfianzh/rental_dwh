@@ -48,18 +48,19 @@ SOURCES = {
     "yandex_realty": Source(
         parser=yandex_realty_parser,
         label="Яндекс Недвижимость",
+        request_delay=3,
     ),
 }
 
 
-def collect_apartments(source, collected_at, logger):
+def collect_apartments(source, collected_at, logger, get_page):
     apartments = []
     seen_urls = set()
     page = 1
     pages_count = None
 
     while pages_count is None or page <= pages_count:
-        html, status_code = source.parser.get_page(page)
+        html, status_code = get_page(page)
         parsed_page = source.parser.parse_page(html)
 
         if source.returns_total_count:
@@ -137,9 +138,29 @@ def run(source_name):
     logger.info("Запуск сбора")
 
     collected_at = datetime.now().astimezone().isoformat(
-        timespec="seconds"
+        timespec="seconds"  
     )
-    apartments = collect_apartments(source, collected_at, logger)
+    if source_name == "yandex_realty":
+        with yandex_realty_parser.browser_session() as browser_page:
+            def get_page(page_number):
+                return yandex_realty_parser.get_page(
+                    page_number,
+                    browser_page,
+                )
+
+            apartments = collect_apartments(
+                source,
+                collected_at,
+                logger,
+                get_page,
+            )
+    else:
+        apartments = collect_apartments(
+            source,
+            collected_at,
+            logger,
+            source.parser.get_page,
+        )
 
     logger.info("Уникальных объявлений: %s", len(apartments))
 
